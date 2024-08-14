@@ -161,6 +161,7 @@ const ariaPropertiesAndStates = [
 
 let indexOfRoles = {};
 let indexOfPropertiesAndStates = {};
+const indexOfExperimentalContent = [];
 
 console.log('Generating index...');
 
@@ -207,6 +208,10 @@ function getPropertiesAndStates(html) {
   }
 
   return propertiesAndStates;
+}
+
+function addExampleToExperimentalContent(example) {
+  indexOfExperimentalContent.push(example);
 }
 
 function addExampleToRoles(roles, example) {
@@ -269,6 +274,10 @@ glob
 
     let html = HTMLParser.parse(data);
 
+    const isExperimental =
+      html.querySelector('main')?.getAttribute('data-content-phase') ===
+      'experimental';
+
     let ref = file.replace('content', '..');
     let title = html
       .querySelector('title')
@@ -284,8 +293,12 @@ glob
       highContrast: data.toLowerCase().indexOf('high contrast') > 0,
     };
 
-    addExampleToRoles(getRoles(html), example);
-    addExampleToPropertiesAndStates(getPropertiesAndStates(html), example);
+    if (isExperimental) {
+      addExampleToExperimentalContent(example);
+    } else {
+      addExampleToRoles(getRoles(html), example);
+      addExampleToPropertiesAndStates(getPropertiesAndStates(html), example);
+    }
   });
 
 // Add landmark examples, since they are a different format
@@ -390,6 +403,19 @@ let examplesByProps = sortedPropertiesAndStates.reduce(function (set, prop) {
             <td>${examplesHTML}</td>
           </tr>`;
 }, '');
+
+const examplesExperimental = indexOfExperimentalContent
+  .map(exampleListItem)
+  .join('');
+
+if (examplesExperimental.length === 0) {
+  // Do no display the experimental section if there are no experimental examples
+  $('#examples_experimental').remove();
+  // Remove the <li> element containing the link to Experimental Examples
+  $('a[href="#examples_experimental_label"]').parent().remove();
+} else {
+  $('#examples_experimental_ul').html(examplesExperimental);
+}
 
 $('#examples_by_props_tbody').html(examplesByProps);
 
